@@ -1,0 +1,40 @@
+{
+  "template" : "logstash-*",
+  "settings" : {
+//        "index" : {
+//            "number_of_shards": 1,
+//            "number_of_replicas":  1
+//        }
+// nsholevski :  This is set on a global level in elasticsearch.yml best solution for 3 nodes setuup with scaling up to 6 is number
+// of shards 6, number of replicas 2. Number of shards changes requires reindexing of the data, changing number of replicas can be on tthe go
+  },
+  "mappings" : {
+    "_default_" : {
+       "_all" : {"enabled" : true},
+       "dynamic_templates" : [ {
+         "string_fields" : {
+           "match" : "*",
+           "match_mapping_type" : "string",
+           "mapping" : {
+             "type" : "string", "index" : "analyzed", "omit_norms" : true,
+               "fields" : {
+                 "raw" : {"type": "string", "index" : "not_analyzed"}
+               }
+           }
+         }
+       } ],
+       "properties" : {
+         "@version": { "type": "string", "index": "not_analyzed" },
+         "geoip"  : {
+           "type" : "object",
+             "dynamic": true,
+             "path": "full",
+             "properties" : {
+               "location" : { "type" : "geo_point" }
+             }
+         }
+       }
+    }
+  }
+}
+

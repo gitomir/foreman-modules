@@ -1,0 +1,27 @@
+cluster.name: aws-syslog
+node.name: <%= @hostname %>
+<% if @hostname == 'aws-syslog-1' %>
+#node.master: true
+#node.data: false
+<% else %>
+#node.master: false
+#node.data: true
+<% end %>
+#path.data: /var/opt/graylog/data/elasticsearch
+#path.logs: /var/log/graylog/elasticsearch/
+# path.plugins: /path/to/plugins
+network.host: <%= @ipaddress %>
+# transport.tcp.port: 9300
+# transport.tcp.compress: true
+# http.port: 9200
+# http.max_content_length: 100mb
+# http.enabled: false
+
+# discovery.zen.minimum_master_nodes: 1
+discovery.zen.ping.timeout: 10s
+discovery.zen.ping.multicast.enabled: false
+discovery.zen.ping.unicast.hosts: [ "aws-syslog-1:9300", "aws-syslog-2:9300" ]
+#discovery.zen.ping.unicast.hosts: ["10.10.0.26:9300"]
+
+script.disable_dynamic: true
+

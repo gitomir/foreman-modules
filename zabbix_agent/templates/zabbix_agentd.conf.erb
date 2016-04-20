@@ -1,0 +1,19 @@
+#
+# FILE MANAGED BY PUPPET 
+#
+
+PidFile=<%= @zabbix_pidfile %>
+LogType=system
+LogFile=<%= @zabbix_logfile_name %>
+LogFileSize=<%= @zabbix_logfile_size %>
+DebugLevel=<%= @zabbix_debug_level %>
+Server=<%= @zabbix_server %>
+ServerActive=<%= @zabbix_server_act %>
+SourceIP=<%= @zabbix_listenip %>
+ListenIP=<%= @zabbix_sourceip %>
+Hostname=<%= @hostname %>
+StartAgents=<%= @zabbix_startagents %>
+
+Include=<%= @zabbix_includedir %>
+
+LoadModulePath=<%= @zabbix_moduledir %>

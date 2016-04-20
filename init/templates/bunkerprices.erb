@@ -1,0 +1,22 @@
+description "Bunker Prices Service"
+author "gary van woerkens"
+
+# used to be: start on startup
+# until we found some mounts weren't ready yet while booting:
+start on started mountall
+stop on shutdown
+
+# Automatically Respawn:
+respawn
+respawn limit 99 5
+
+env NODE_PATH="/usr/lib/nodejs:/usr/lib/node_modules:/usr/share/javascript"
+
+script
+    exec sudo -u bpuser NODE_ENV=production /usr/bin/node /data/www/bunkerprices.axsmarine.com/bin/www >> /var/log/bunkerprices.log 2>&1
+end script
+
+post-start script
+   # Optionally put a script here that will notifiy you node has (re)started
+   # /root/bin/hoptoad.sh "node.js has started!"
+end script

@@ -1,0 +1,25 @@
+input {
+        tcp {
+		port => 9222
+                codec => "json"
+        }
+}
+
+filter {
+    geoip {
+        source => "ip_raw"
+    }
+}
+
+output {
+        elasticsearch {
+                host => "<%= @ipaddress_eth0 %>"
+                protocol => http
+                flush_size => 500
+                manage_template => true
+		template_overwrite => true
+                index => "logstash-%{+YYYY.MM.dd}-%{product}"
+                template => "/etc/logstash/elasticsearch-template.json"
+        }
+}
+

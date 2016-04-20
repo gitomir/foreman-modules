@@ -1,0 +1,4 @@
+<?php
+$mysql_user = 'user1';
+$mysql_pass = 'crim73';
+?>

@@ -1,0 +1,101 @@
+<% if @hostname == 'aws-syslog-1' %>
+is_master = true
+<% else %>
+is_master = false
+<% end %>
+node_id_file = /etc/graylog/server/node-id
+
+password_secret = c9e24d0915af896e55a718937e285a5bd6feed89887f8b4da52571576e118df1c0ee952e0e1a0283871ca9e51ff16ebb16e04922286e45f52ee73167002be00b
+root_username = admin
+root_password_sha2 = 49e825a19dfac61a3826e03107b460e81df22ce8cd9b61d1d5892387d89a353d
+
+root_timezone = Europe/Paris
+
+plugin_dir = /usr/share/graylog-server/plugin
+
+rest_listen_uri = http://<%= @ipaddress %>:12900/
+rest_transport_uri = http://<%= @ipaddress %>:12900/
+rotation_strategy = size
+#elasticsearch_max_docs_per_index = 20000000
+elasticsearch_max_size_per_index = 1073741824
+elasticsearch_max_time_per_index = 1h
+elasticsearch_max_number_of_indices = 10
+retention_strategy = delete
+elasticsearch_shards = 1
+elasticsearch_replicas = 1
+elasticsearch_index_prefix = graylog
+allow_leading_wildcard_searches = true
+allow_highlighting = false
+elasticsearch_cluster_name = aws-syslog
+elasticsearch_node_name = <%= @hostname %>
+<% if @hostname == 'aws-syslog-1' %>
+#elasticsearch_node_master = true
+#elasticsearch_node_data = false
+<% else %>
+#elasticsearch_node_master = false
+#elasticsearch_node_data = true
+<% end %>
+#elasticsearch_transport_tcp_port = 9350
+elasticsearch_http_enabled = false
+
+elasticsearch_discovery_zen_ping_multicast_enabled = false
+elasticsearch_discovery_zen_ping_unicast_hosts = aws-syslog-1:9300,aws-syslog-2:9300
+#elasticsearch_discovery_zen_ping_unicast_hosts = 10.10.0.26:9300
+elasticsearch_cluster_discovery_timeout = 5000
+elasticsearch_discovery_initial_state_timeout = 3s
+
+elasticsearch_analyzer = standard
+#elasticsearch_request_timeout = 1m
+
+output_batch_size = 500
+output_flush_interval = 1
+output_fault_count_threshold = 5
+output_fault_penalty_seconds = 30
+processbuffer_processors = 5
+outputbuffer_processors = 3
+processor_wait_strategy = blocking
+
+ring_size = 65536
+
+inputbuffer_ring_size = 65536
+inputbuffer_processors = 2
+inputbuffer_wait_strategy = blocking
+
+message_journal_enabled = true
+message_journal_dir = /var/lib/graylog-server/data/journal
+#message_journal_max_age = 12h
+message_journal_max_size = 1gb
+#message_journal_flush_age = 1m
+#message_journal_flush_interval = 1000000
+#message_journal_segment_age = 1h
+#message_journal_segment_size = 100mb
+
+async_eventbus_processors = 2
+
+dead_letters_enabled = false
+lb_recognition_period_seconds = 3
+alert_check_interval = 60
+
+mongodb_uri = mongodb://aws-syslog-1:27017/graylog
+mongodb_max_connections = 100
+mongodb_threads_allowed_to_block_multiplier = 5
+
+
+# Email transport
+transport_email_enabled = true
+transport_email_hostname = localhost
+transport_email_port = 25
+transport_email_use_auth = false
+transport_email_use_tls = true
+transport_email_use_ssl = true
+transport_email_auth_username =
+transport_email_auth_password =
+transport_email_subject_prefix = [graylog]
+transport_email_from_email = graylog@<%= @hostname %>
+transport_email_web_interface_url = http://<%= @hostname %>
+
+
+dashboard_widget_default_cache_time = 10s
+content_packs_loader_enabled = true
+content_packs_dir = /usr/share/graylog-server/contentpacks
+content_packs_auto_load = grok-patterns.json,content_pack_appliance.json

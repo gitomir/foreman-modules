@@ -1,0 +1,31 @@
+listen=YES
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+local_umask=002
+nopriv_user=vsftpd
+virtual_use_local_privs=YES
+guest_enable=YES
+user_config_dir=/etc/vsftpd_user_conf
+user_sub_token=$USER
+local_root=/data/ypi_website
+chroot_local_user=YES
+chroot_list_enable=YES
+hide_ids=YES
+guest_username=vsftpd
+dual_log_enable=YES
+log_ftp_protocol=YES
+syslog_enable=NO
+xferlog_enable=YES
+vsftpd_log_file=/var/log/vsftpd.log
+xferlog_file=/var/log/xferlog
+xferlog_std_format=NO
+
+<% if @hostname == ("aws-small-front-2") then -%>
+#Following rows are needed to enable passive mode
+pasv_enable=YES
+pasv_max_port=7015
+pasv_min_port=7005
+port_enable=YES
+pasv_address=52.29.242.61
+<% end -%>

@@ -1,0 +1,319 @@
+#
+# FILE MANAGED BY PUPPET MODULE AXS-HAPROXY
+#
+
+global
+        log             127.0.0.1 local0
+        chroot          /var/lib/haproxy
+        user            haproxy
+        group           haproxy
+        maxconn         20000
+        daemon
+        stats           socket /var/run/haproxy.sock user root group zabbix mode 660 level admin
+        ssl-default-bind-ciphers        ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS
+        ssl-default-server-ciphers      ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS
+        tune.ssl.default-dh-param       2048
+
+defaults
+        log             global
+        mode            http
+        option          forwardfor
+        option          http-server-close
+        option          httplog
+        option          dontlognull
+        timeout connect 5000
+        #120 000 ms = 2 min
+        timeout client  120000
+        timeout server  120000
+#       retries         3
+#       redispatch
+
+
+#
+# LISTEN, FRONTENDS
+#
+
+frontend axs-dt-tcp-farm
+        bind            <%= @ipaddress_eth0 %>:4999
+        mode            tcp
+        option          tcplog
+        default_backend bk_axs-dt-tcp-farm
+
+frontend axs-logstash-lb
+        bind            <%= @ipaddress_eth0 %>:9222
+        mode            tcp
+        option          tcplog
+        default_backend bk_axs-logstash
+
+frontend axs-webfarm
+        bind            <%= @ipaddress_eth0 %>:80
+        reqadd          X-Forwarded-Proto:\ http
+        option          forceclose
+        use_backend %[req.hdr(host),lower,map(/etc/haproxy/backend.map,bk_default)]
+#       acl             sofia_office src 213.169.56.129/29 94.156.222.229/30
+        stats           enable
+        stats           refresh 10s
+        stats           show-legends
+        stats           hide-version
+        stats           uri /lukeiamyourfathergsrakovski?stats
+        stats           realm AXS\ HaPROXY
+        stats           auth root:2Rossignol4eta
+
+
+frontend axs-webfarm-ssl
+        bind            <%= @ipaddress_eth0 %>:443 ssl crt /etc/haproxy/STAR_axsmarine.com.pem
+        reqadd          X-Forwarded-Proto:\ https
+        maxconn         200000
+        default_backend bk_dry_ssl
+
+listen  syslog-RestAPI <%= @ipaddress_eth0 %>:12900
+        mode    tcp
+        balance roundrobin
+        maxconn 10000
+        option  tcplog
+        option  tcpka
+        server  aws-syslog-1 aws-syslog-1:12900 check
+        server  aws-syslog-2 aws-syslog-2:12900 check
+
+listen  syslog-GELF <%= @ipaddress_eth0 %>:5555
+        mode    tcp
+        balance roundrobin
+        maxconn 10000
+        option  tcplog
+        option  tcpka
+        server  aws-syslog-1 aws-syslog-1:5555 check
+        server  aws-syslog-2 aws-syslog-2:5555 check
+
+listen  syslog-SYSLOG <%= @ipaddress_eth0 %>:5556
+        mode    tcp
+        balance roundrobin
+        maxconn 10000
+        option  tcplog
+        option  tcpka
+        server  aws-syslog-1 aws-syslog-1:5556 check
+        server  aws-syslog-2 aws-syslog-2:5556 check
+
+#
+# BACKENDS
+#
+
+
+backend bk_default
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+
+backend bk_axs-dt-tcp-farm
+        mode tcp
+        balance first
+        option tcplog
+        server  dt-1-5010 aws-dt-1.aws.axsmarine.com:5010 check maxconn 1
+        server  dt-1-5020 aws-dt-1.aws.axsmarine.com:5020 check maxconn 1
+        server  dt-1-5030 aws-dt-1.aws.axsmarine.com:5030 check maxconn 1
+        server  dt-1-5040 aws-dt-1.aws.axsmarine.com:5040 check maxconn 1
+        server  dt-1-5050 aws-dt-1.aws.axsmarine.com:5050 check maxconn 1
+        server  dt-2-5010 aws-dt-2.aws.axsmarine.com:5010 check maxconn 1
+        server  dt-2-5020 aws-dt-2.aws.axsmarine.com:5020 check maxconn 1
+        server  dt-2-5030 aws-dt-2.aws.axsmarine.com:5030 check maxconn 1
+        server  dt-2-5040 aws-dt-2.aws.axsmarine.com:5040 check maxconn 1
+        server  dt-2-5050 aws-dt-2.aws.axsmarine.com:5050 check maxconn 1
+
+backend bk_axs-logstash
+        mode    tcp
+        balance roundrobin
+        option  tcplog
+        server  aws-elastic-1 10.10.0.24:9222 check
+        server  aws-elastic-2 10.10.1.24:9222 check
+        server  aws-elastic-3 10.10.0.25:9222 check
+
+backend bk_axsmarine
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_static
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_staticv5
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_dry
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_dry_ssl
+        redirect scheme https if !{ ssl_fc }
+        cookie axs-webfarm-https insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_tanker3
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_tanker4
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_terminalsv4
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_axsais
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_eotvbunker
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_admin1
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+#        server aws-frontend-2 10.10.0.20:80     weight 0 check cookie s2
+
+
+backend bk_offshorev4
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_axstankerv3
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_offshore
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_beta
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_ffa
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_mobile
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_alphalinerv4
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_help
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_snp
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_webservices
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_webservicesv4
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_old
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_axsdry2
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_datamanager
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_ocvetting
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+backend bk_alphaliner
+        option abortonclose
+        balance roundrobin
+        cookie axs-webfarm insert indirect nocache
+        server aws-frontend-1 10.10.0.13:80     weight 10 check cookie s1
+        server aws-frontend-2 10.10.0.20:80     weight 10 check cookie s2
+
+# EOF

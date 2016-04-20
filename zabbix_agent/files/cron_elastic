@@ -1,0 +1,1 @@
+*/1 * * * * /usr/local/bin/zelastic_trap.py >/dev/null 2>&1
